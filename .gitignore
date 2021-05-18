@@ -1,0 +1,12 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/TestUtilitySuite/.vs
+/TestUtilitySuite/Services/RI.AppFramework/bin/Debug/netstandard2.0
+/TestUtilitySuite/Services/RI.AppFramework/obj
+/TestUtilitySuite/Services/RI.Services/bin/Debug
+/TestUtilitySuite/Services/RI.Services/obj
+/TestUtilitySuite/UI/RI.UtilityApp/bin/Debug/netcoreapp2.0
+/TestUtilitySuite/UI/RI.UtilityApp/obj
