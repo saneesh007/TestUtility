@@ -10,6 +10,6 @@ namespace RI.Services.Partner
     {
         Task<List<PosUser>> GetAllPosUsers(int solutionPartnerId, List<int> agentId);
         Task<List<PosUnits>> GetAllPosUnit(int solutionPartnerId, List<int> agentId);
-        Task<List<PosAssignment>> GetAllPosAssignment(int solutionPartnerId, List<int> agentId);
+        Task<List<PosAssignment>> GetAllPosAssignment(int solutionPartnerId,int terminalCount);
     }
 }

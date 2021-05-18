@@ -24,6 +24,8 @@ namespace RI.UtilityApp
           options => options.UseSqlServer("name=ConnectionStrings:DefaultConnection"));
 
             services.AddTransient<IPartnerService, PartnerService>();
+            services.AddTransient<IPosService, PosService>();
+            services.AddTransient<IProductService, ProductService>();
             services.AddMvc();
         }
 

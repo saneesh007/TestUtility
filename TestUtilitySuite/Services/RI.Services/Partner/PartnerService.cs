@@ -21,11 +21,7 @@ namespace RI.Services.Partner
             List<Agent> list = new List<Agent>();
             try
             {
-                string sql = "select * from agents where ISNULL(parentid,0)=0";
-                //List<SqlParameter> parms = new List<SqlParameter>
-                //{
-                //    new SqlParameter { ParameterName = "@ProductID", Value = 706 }
-                //};
+                string sql = "select * from agents where ISNULL(parentid,0)=0"; 
                 list = await _db.Set<Agent>().FromSql(sql).ToListAsync();
             }
             catch (Exception ex)

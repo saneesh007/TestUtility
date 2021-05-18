@@ -3,6 +3,8 @@ using RI.AppFramework;
 using RI.AppFramework.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,17 +18,31 @@ namespace RI.Services.Partner
             _db = rechargeDbContext;
         }
 
-        public async Task<List<PosAssignment>> GetAllPosAssignment(int solutionPartnerId, List<int> agentId)
+        public async Task<List<PosAssignment>> GetAllPosAssignment(int solutionPartnerId, int terminalCount)
         {
             List<PosAssignment> list = new List<PosAssignment>();
             try
             {
-                string sql = "select * from agents where ISNULL(parentid,0)=0";
-                //List<SqlParameter> parms = new List<SqlParameter>
-                //{
-                //    new SqlParameter { ParameterName = "@ProductID", Value = 706 }
-                //};
-                list = await _db.Set<PosAssignment>().FromSql(sql).ToListAsync();
+                string sql = @"select * from (select distinct poa.*   from Agents ag
+join ProductAgentAssignment paa on ag.Id =paa.AgentId
+join Products p on paa.ProductId=p.Id
+join PosAssignments poa on ag.Id = poa.MerchantId
+join PosUnits po on poa.POSId=po.Id
+join PosUsers pu on ag.Id = pu.MerchantId
+where ag.SolutionPartnerId= @partnerId
+and poa.Status=1 
+and p.ActiveStatus=1 
+and po.ActiveStatus=1 
+and ag.ActiveStatus=1 
+and pu.ActiveStatus=1)x
+ORDER BY NEWID()  OFFSET 0 ROWS
+FETCH NEXT @count ROWS ONLY";
+                var parameters = new[]
+                {
+                    new SqlParameter { ParameterName = "@partnerId", Value = solutionPartnerId },
+                    new SqlParameter { ParameterName = "@count", Value = terminalCount }
+                };
+                list = await _db.Set<PosAssignment>().FromSql(sql, parameters.ToArray<object>()).ToListAsync();
             }
             catch (Exception ex)
             {

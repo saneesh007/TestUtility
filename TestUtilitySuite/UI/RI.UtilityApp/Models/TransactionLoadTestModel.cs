@@ -12,7 +12,9 @@ namespace RI.UtilityApp.Models
         public List<SelectListItem> Partners { get; set; }
         [Display(Name = "Partner")]
         public int PartnerId { get; set; }
+        [Display(Name = "Number Of Terminals")]
         public int NumberOfTerminals { get; set; }
+        [Display(Name = "Number Of Transaction Per Terminal")]
         public int NumberOfTransactionPerTerminal { get; set; }
     }
 }
