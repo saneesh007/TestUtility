@@ -10,5 +10,6 @@ namespace RI.AppFramework.Models
         public string Name { get; set; }
         public int? ParentId { get; set; }
         public int? SolutionPartnerId { get; set; }
+        public int? ActiveStatus { get; set; }
     }
 }

@@ -8,7 +8,7 @@ namespace RI.Services.Partner
 {
     public interface IProductService
     {
-        Task<List<ProductAssignment>> GetAgentProductAssignment(int solutionPartnerId,List<int> agentId);
+        Task<List<ProductAgentAssignment>> GetAgentProductAssignment(int solutionPartnerId, List<int> agentId);
         Task<List<Product>> GetAllProducts(int partnerId);
     }
 }

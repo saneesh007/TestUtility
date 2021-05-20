@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,17 +17,16 @@ namespace RI.Services.Partner
             _db = rechargeDbContext;
         }
 
-        public async Task<List<ProductAssignment>> GetAgentProductAssignment(int solutionPartnerId, List<int> agentId)
+        public async Task<List<ProductAgentAssignment>> GetAgentProductAssignment(int solutionPartnerId, List<int> agentId)
         {
-            List<ProductAssignment> list = new List<ProductAssignment>();
+            List<ProductAgentAssignment> list = new List<ProductAgentAssignment>();
             try
             {
-                string sql = "select * from agents where ISNULL(parentid,0)=0";
-                //List<SqlParameter> parms = new List<SqlParameter>
-                //{
-                //    new SqlParameter { ParameterName = "@ProductID", Value = 706 }
-                //};
-                list = await _db.Set<ProductAssignment>().FromSql(sql).ToListAsync();
+
+                list = await (from p in _db.Products.AsNoTracking()
+                              join pa in _db.ProductAgentAssignment.AsNoTracking() on p.Id equals pa.ProductId
+                              where p.ActiveStatus == 1 && p.SolutionPartnerId == solutionPartnerId
+                              select pa).ToListAsync();
             }
             catch (Exception ex)
             {
@@ -39,12 +39,9 @@ namespace RI.Services.Partner
             List<Product> list = new List<Product>();
             try
             {
-                string sql = "select * from Product where ISNULL(parentid,0)=0";
-                //List<SqlParameter> parms = new List<SqlParameter>
-                //{
-                //    new SqlParameter { ParameterName = "@ProductID", Value = 706 }
-                //};
-                list = await _db.Set<Product>().FromSql(sql).ToListAsync();
+                list = await (from p in _db.Products.AsNoTracking()
+                              where p.ActiveStatus == 1 && p.SolutionPartnerId == partnerId
+                              select p).ToListAsync();
             }
             catch (Exception ex)
             {

@@ -51,17 +51,13 @@ FETCH NEXT @count ROWS ONLY";
             return list;
         }
 
-        public async Task<List<PosUnits>> GetAllPosUnit(int solutionPartnerId, List<int> agentId)
+        public async Task<List<PosUnits>> GetAllPosUnit(int solutionPartnerId, List<int> posassignmentId)
         {
             List<PosUnits> list = new List<PosUnits>();
             try
             {
-                string sql = "select * from agents where ISNULL(parentid,0)=0";
-                //List<SqlParameter> parms = new List<SqlParameter>
-                //{
-                //    new SqlParameter { ParameterName = "@ProductID", Value = 706 }
-                //};
-                list = await _db.Set<PosUnits>().FromSql(sql).ToListAsync();
+                var query = _db.PosUnits.Where(x => posassignmentId.Contains(x.Id) && x.ActiveStatus == 1);
+                list = await query.ToListAsync();
             }
             catch (Exception ex)
             {
@@ -75,12 +71,8 @@ FETCH NEXT @count ROWS ONLY";
             List<PosUser> list = new List<PosUser>();
             try
             {
-                string sql = "select * from agents where ISNULL(parentid,0)=0";
-                //List<SqlParameter> parms = new List<SqlParameter>
-                //{
-                //    new SqlParameter { ParameterName = "@ProductID", Value = 706 }
-                //};
-                list = await _db.Set<PosUser>().FromSql(sql).ToListAsync();
+                var query = _db.PosUsers.Where(x => agentId.Contains(x.MerchantId) && x.ActiveStatus == 1 && x.Type == 1);
+                list = await query.ToListAsync();
             }
             catch (Exception ex)
             {

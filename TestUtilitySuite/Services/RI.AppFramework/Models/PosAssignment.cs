@@ -9,5 +9,6 @@ namespace RI.AppFramework.Models
         public int Id { get; set; }
         public int POSId { get; set; }
         public int MerchantId { get; set; }
+        public int Status { get; set; }
     }
 }

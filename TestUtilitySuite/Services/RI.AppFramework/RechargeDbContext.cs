@@ -17,6 +17,6 @@ namespace RI.AppFramework
         public DbSet<PosUnits> PosUnits { get; set; }
         public DbSet<PosUser> PosUsers { get; set; }
         public DbSet<Product> Products { get; set; }
-        public DbSet<ProductAssignment> ProductAssignments { get; set; }
+        public DbSet<ProductAgentAssignment> ProductAgentAssignment { get; set; }
     }
 }

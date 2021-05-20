@@ -8,5 +8,6 @@ namespace RI.AppFramework.Models
     {
         public int Id { get; set; }
         public string POSNo { get; set; }
+        public int ActiveStatus { get; set; }
     }
 }
