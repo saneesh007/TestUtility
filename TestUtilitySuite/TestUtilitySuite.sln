@@ -9,9 +9,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{DBABBFE2-DEDF-
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RI.AppFramework", "Services\RI.AppFramework\RI.AppFramework.csproj", "{311D2E74-69DD-45B5-BEA9-09B291EA7FF0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RI.UtilityApp", "UI\RI.UtilityApp\RI.UtilityApp.csproj", "{F2FE4A1F-A2EC-4895-91C8-3BE523D77EF2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RI.UtilityApp", "UI\RI.UtilityApp\RI.UtilityApp.csproj", "{F2FE4A1F-A2EC-4895-91C8-3BE523D77EF2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RI.Services", "Services\RI.Services\RI.Services.csproj", "{17005CA6-62FF-4C70-8369-544EDD3C2CB7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RI.Services", "Services\RI.Services\RI.Services.csproj", "{17005CA6-62FF-4C70-8369-544EDD3C2CB7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

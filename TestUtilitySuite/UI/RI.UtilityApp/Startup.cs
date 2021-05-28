@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RI.AppFramework;
 using RI.Services.Partner;
+using RI.Services.Utility;
 
 namespace RI.UtilityApp
 {
@@ -26,6 +27,7 @@ namespace RI.UtilityApp
             services.AddTransient<IPartnerService, PartnerService>();
             services.AddTransient<IPosService, PosService>();
             services.AddTransient<IProductService, ProductService>();
+            services.AddTransient<IUtilityService, UtilityService>();
             services.AddMvc();
         }
 

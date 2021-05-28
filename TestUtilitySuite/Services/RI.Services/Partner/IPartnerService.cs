@@ -9,6 +9,6 @@ namespace RI.Services.Partner
     public interface IPartnerService
     {
         Task<List<Agent>> GetAllActivePartners();
-        Task<List<Agent>> GetAllMerchant(int partnerId);
+        Task<List<Agent>> GetAllMerchant(int partnerId, List<int> agentId);
     }
 }

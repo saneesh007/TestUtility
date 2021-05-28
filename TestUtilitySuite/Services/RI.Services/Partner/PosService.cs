@@ -29,6 +29,7 @@ join Products p on paa.ProductId=p.Id
 join PosAssignments poa on ag.Id = poa.MerchantId
 join PosUnits po on poa.POSId=po.Id
 join PosUsers pu on ag.Id = pu.MerchantId
+cross apply (select top 1 * from PinStock t where t.AgentId=ag.ParentId and  t.ProductId=p.Id and t.Status =2) x
 where ag.SolutionPartnerId= @partnerId
 and poa.Status=1 
 and p.ActiveStatus=1 

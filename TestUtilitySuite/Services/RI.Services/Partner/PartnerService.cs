@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace RI.Services.Partner
@@ -21,7 +22,7 @@ namespace RI.Services.Partner
             List<Agent> list = new List<Agent>();
             try
             {
-                string sql = "select * from agents where ISNULL(parentid,0)=0"; 
+                string sql = "select * from agents where ISNULL(parentid,0)=0";
                 list = await _db.Set<Agent>().FromSql(sql).ToListAsync();
             }
             catch (Exception ex)
@@ -31,17 +32,12 @@ namespace RI.Services.Partner
             return list;
         }
 
-        public async Task<List<Agent>> GetAllMerchant(int partnerId)
+        public async Task<List<Agent>> GetAllMerchant(int partnerId, List<int> agentId)
         {
             List<Agent> list = new List<Agent>();
             try
             {
-                string sql = "select * from agents where ISNULL(parentid,0)=0";
-                //List<SqlParameter> parms = new List<SqlParameter>
-                //{
-                //    new SqlParameter { ParameterName = "@ProductID", Value = 706 }
-                //};
-                list = await _db.Set<Agent>().FromSql(sql).ToListAsync();
+                list = await _db.Agents.AsNoTracking().Where(x => x.SolutionPartnerId == partnerId && agentId.Contains(x.Id)).ToListAsync();
             }
             catch (Exception ex)
             {
