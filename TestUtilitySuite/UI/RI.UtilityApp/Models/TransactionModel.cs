@@ -17,6 +17,6 @@ namespace RI.UtilityApp.Models
         public List<ProductAgentAssignment> ProductAgentAssignments { get; set; }
         public TransactionLoadTestModel Request { get; set; }
         public TestUtilityHeader TestUtilityHeader { get; set; }
-        public List<TestUtilityLoadTestDetail> TestUtilityLoadTestDetail { get; set; }
+        public string URL { get; set; }
     }
 }

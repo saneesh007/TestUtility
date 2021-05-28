@@ -31,6 +31,8 @@ namespace RI.AppFramework.EntityModel
         [Display(Name = "Success Count")]
         public int SuccessCount { get; set; }
         [Display(Name = "Failure Count")]
-        public int FailureCount { get; set; } 
+        public int FailureCount { get; set; }
+        [NotMapped]
+        public List<TestUtilityLoadTestDetail> TestUtilityLoadTestDetail { get; set; }
     }
 }

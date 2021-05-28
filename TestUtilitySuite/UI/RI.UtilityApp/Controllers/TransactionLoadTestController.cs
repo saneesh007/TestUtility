@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
@@ -21,13 +22,14 @@ namespace RI.UtilityApp.Controllers
         IPartnerService _partnerService;
         IPosService _posService;
         IProductService _productService;
-        IUtilityService _utilityService;
-        public TransactionLoadTestController(IPartnerService partnerService, IPosService posService, IProductService productService, IUtilityService utilityService)
+        IHttpContextAccessor _httpContextAccessor;
+        public TransactionLoadTestController(IPartnerService partnerService, IPosService posService,
+            IProductService productService, IHttpContextAccessor httpContextAccessor)
         {
             _partnerService = partnerService;
             _posService = posService;
             _productService = productService;
-            _utilityService = utilityService;
+            _httpContextAccessor = httpContextAccessor;
         }
         // GET: /<controller>/
 
@@ -70,16 +72,25 @@ namespace RI.UtilityApp.Controllers
                 transactionModel.ProductAgentAssignments = productassignments;
                 transactionModel.Products = products;
                 transactionModel.Request = model;
-                Thread t = new Thread(() => TransactionLoadTest(transactionModel));
-                t.Start();
+                transactionModel.URL = GetBaseUrl();
+                //Task.Factory.StartNew(() => TransactionLoadTest(transactionModel));
+                TransactionLoadTest(transactionModel);
             }
             return View(model);
+        }
+        public string GetBaseUrl()
+        {
+            var baseUrl = String.Empty;
+            var request = _httpContextAccessor.HttpContext.Request;
+            baseUrl = string.Format("{0}://{1}", request.Scheme, request.Host.ToUriComponent());
+            if (!string.IsNullOrWhiteSpace(baseUrl) && !baseUrl.EndsWith("/"))
+                baseUrl = String.Format("{0}/", baseUrl);
+            return baseUrl;
         }
         private async Task TransactionLoadTest(TransactionModel transactionModel)
         {
             transactionModel.TestUtilityHeader = new TestUtilityHeader()
             {
-                Batch = "12312",
                 Date = DateTime.UtcNow,
                 NumberOfTerminals = transactionModel.Request.NumberOfTerminals,
                 NumberOfTransactionPerTerminal = transactionModel.Request.NumberOfTransactionPerTerminal,
@@ -87,29 +98,22 @@ namespace RI.UtilityApp.Controllers
                 StartTime = DateTime.UtcNow,
                 ProcessTypeId = 1,
             };
-            transactionModel.TestUtilityLoadTestDetail = new List<TestUtilityLoadTestDetail>();
+            transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail = new List<TestUtilityLoadTestDetail>();
             List<Thread> transactionThread = new List<Thread>();
             foreach (var item in transactionModel.PosAssignments)
             {
                 for (int i = 0; i < transactionModel.Request.NumberOfTransactionPerTerminal; i++)
                 {
-                    Thread t = new Thread(() => DoProcess(transactionModel, item));
+                    Thread t = new Thread(() => DoProcess(transactionModel, item, i + 1));
                     transactionThread.Add(t);
                     t.Start();
                 }
             }
-            foreach (Thread item in transactionThread)
-            {
-                item.Join();
-            }
-            await _utilityService.WriteTransaction(transactionModel.TestUtilityHeader, transactionModel.TestUtilityLoadTestDetail);
         }
-        private async Task DoProcess(TransactionModel transactionModel, PosAssignment posassignment)
+        private async Task DoProcess(TransactionModel transactionModel, PosAssignment posassignment, int iteration)
         {
             try
             {
-
-                // var posassignment = transactionModel.PosAssignments.FirstOrDefault();
                 var merchant = transactionModel.Merchants.FirstOrDefault(x => x.Id == posassignment.MerchantId);
                 var posUnits = transactionModel.PosUnits.FirstOrDefault(x => x.Id == posassignment.POSId);
                 var posuser = transactionModel.PosUsers.FirstOrDefault(x => x.MerchantId == posassignment.MerchantId);
@@ -172,7 +176,7 @@ namespace RI.UtilityApp.Controllers
                             business_date = businessDay.business_date,
                             download_pin_id = x.download_pin_Id,
                             product_id = x.product_id,
-                            sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyyyMMddHHmm") + posassignment.Id),
+                            sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyyyMMddHHmm") + posassignment.Id + iteration),
                             serial_no = x.serial_no,
                             shift_no = businessDay.ShiftNo,
                             user_id = posUnits.Id
@@ -180,25 +184,29 @@ namespace RI.UtilityApp.Controllers
                     ).ToList()
                 };
                 ResponseVM response = await PinDownloadConfirmation(confirmationRequest);
-                lock (transactionModel)
-                {
-                    transactionModel.TestUtilityHeader.EndTime = DateTime.UtcNow;
+                //lock (transactionModel)
+                //{
+                transactionModel.TestUtilityHeader.EndTime = DateTime.UtcNow;
 
-                    transactionModel.TestUtilityLoadTestDetail.Add(new TestUtilityLoadTestDetail()
-                    {
-                        ConfirmationReponseTime = Convert.ToInt32(response.Response_time),
-                        DownloadedPinId = downlaod.Pin.FirstOrDefault().download_pin_Id,
-                        DownloadResponseTime = Convert.ToInt32(downlaod.Response_time.Replace("ms", "")),
-                        IsConfirmed = response.response_code == "00",
-                        IsDownloadCompleted = downlaod.response_code == "00",
-                        MerchantId = merchant.Id,
-                        PinDownloadId = downlaod.download_Id ?? 0,
-                        PosAssignmentId = posassignment.Id,
-                        PosId = posassignment.POSId,
-                        ResponseCode = response.response_code,
-                        ProductId = product.Id,
-                        TxnNo = confirmationRequest.txn.FirstOrDefault().sale_txn_no?.ToString()
-                    });
+                transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail.Add(new TestUtilityLoadTestDetail()
+                {
+                    ConfirmationReponseTime = Convert.ToInt32(response.Response_time),
+                    DownloadedPinId = downlaod.Pin.FirstOrDefault().download_pin_Id,
+                    DownloadResponseTime = Convert.ToInt32(downlaod.Response_time.Replace("ms", "")),
+                    IsConfirmed = response.response_code == "00",
+                    IsDownloadCompleted = downlaod.response_code == "00",
+                    MerchantId = merchant.Id,
+                    PinDownloadId = downlaod.download_Id ?? 0,
+                    PosAssignmentId = posassignment.Id,
+                    PosId = posassignment.POSId,
+                    ResponseCode = response.response_code,
+                    ProductId = product.Id,
+                    TxnNo = confirmationRequest.txn.FirstOrDefault().sale_txn_no?.ToString()
+                });
+                //}
+                if (transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail.Count == (transactionModel.Request.NumberOfTerminals * transactionModel.Request.NumberOfTransactionPerTerminal))
+                {
+                    await WriteTransactionLoad(transactionModel.TestUtilityHeader, transactionModel.URL);
                 }
 
             }
@@ -240,6 +248,38 @@ namespace RI.UtilityApp.Controllers
             {
 
                 throw;
+            }
+        }
+        private async Task<bool> WriteTransactionLoad(TestUtilityHeader testResult, string url)
+        {
+            try
+            {
+                bool result = false;
+                using (HttpClient client = new HttpClient())
+                {
+                    var data = JsonConvert.SerializeObject(testResult);
+                    StringContent request = new StringContent(data, Encoding.UTF8, "application/json");
+                    string endpoint = "http://localhost:63215/api/WriteTransactionLoad"; //url + "api/Utility/WriteTransactionLoad";
+                    //client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", "50185b70341b4f5aa5e1d3307a261798");
+                    using (var Response = await client.PostAsync(endpoint, request))
+                    {
+                        if (Response.StatusCode == System.Net.HttpStatusCode.OK)
+                        {
+                            string content = await Response.Content.ReadAsStringAsync();
+                            string token = JsonConvert.DeserializeObject(content).ToString();
+                            result = JsonConvert.DeserializeObject<bool>(token);
+                            return result;
+                        }
+                        else
+                        {
+                            return result;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
         private async Task<BusinessDayResponseVM> GetActiveBusinessDay(BusinessdayRequestVM request)
