@@ -1,4 +1,5 @@
-﻿using RI.AppFramework.Models;
+﻿using RI.AppFramework.EntityModel;
+using RI.AppFramework.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,5 +16,7 @@ namespace RI.UtilityApp.Models
         public List<Product> Products { get; set; }
         public List<ProductAgentAssignment> ProductAgentAssignments { get; set; }
         public TransactionLoadTestModel Request { get; set; }
+        public TestUtilityHeader TestUtilityHeader { get; set; }
+        public List<TestUtilityLoadTestDetail> TestUtilityLoadTestDetail { get; set; }
     }
 }

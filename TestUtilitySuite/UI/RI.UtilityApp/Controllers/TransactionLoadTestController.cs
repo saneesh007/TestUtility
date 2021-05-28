@@ -70,36 +70,46 @@ namespace RI.UtilityApp.Controllers
                 transactionModel.ProductAgentAssignments = productassignments;
                 transactionModel.Products = products;
                 transactionModel.Request = model;
-                await DoProcess(transactionModel);
+                Thread t = new Thread(() => TransactionLoadTest(transactionModel));
+                t.Start();
             }
             return View(model);
         }
-
-        private async Task DoProcess(TransactionModel transactionModel)
+        private async Task TransactionLoadTest(TransactionModel transactionModel)
+        {
+            transactionModel.TestUtilityHeader = new TestUtilityHeader()
+            {
+                Batch = "12312",
+                Date = DateTime.UtcNow,
+                NumberOfTerminals = transactionModel.Request.NumberOfTerminals,
+                NumberOfTransactionPerTerminal = transactionModel.Request.NumberOfTransactionPerTerminal,
+                PartnerId = transactionModel.Request.PartnerId,
+                StartTime = DateTime.UtcNow,
+                ProcessTypeId = 1,
+            };
+            transactionModel.TestUtilityLoadTestDetail = new List<TestUtilityLoadTestDetail>();
+            List<Thread> transactionThread = new List<Thread>();
+            foreach (var item in transactionModel.PosAssignments)
+            {
+                for (int i = 0; i < transactionModel.Request.NumberOfTransactionPerTerminal; i++)
+                {
+                    Thread t = new Thread(() => DoProcess(transactionModel, item));
+                    transactionThread.Add(t);
+                    t.Start();
+                }
+            }
+            foreach (Thread item in transactionThread)
+            {
+                item.Join();
+            }
+            await _utilityService.WriteTransaction(transactionModel.TestUtilityHeader, transactionModel.TestUtilityLoadTestDetail);
+        }
+        private async Task DoProcess(TransactionModel transactionModel, PosAssignment posassignment)
         {
             try
             {
-                TestUtilityHeader testUtilityHeader = new TestUtilityHeader()
-                {
-                    Batch = "12312",
-                    Date = DateTime.UtcNow,
-                    NumberOfTerminals = transactionModel.Request.NumberOfTerminals,
-                    NumberOfTransactionPerTerminal = transactionModel.Request.NumberOfTransactionPerTerminal,
-                    PartnerId = transactionModel.Request.PartnerId,
-                    StartTime = DateTime.UtcNow,
-                    ProcessTypeId = 1,
-                };
-                List<TestUtilityLoadTestDetail> testUtilityLoadTestDetail = new List<TestUtilityLoadTestDetail>();
-                //foreach (var item in posassignments)
-                //{
-                //    for (int i = 0; i < model.NumberOfTransactionPerTerminal; i++)
-                //    {
-                //        Thread t = new Thread(TransactionLoadTest);
-                //        t.Start();
-                //    }
-                //} 
 
-                var posassignment = transactionModel.PosAssignments.FirstOrDefault();
+                // var posassignment = transactionModel.PosAssignments.FirstOrDefault();
                 var merchant = transactionModel.Merchants.FirstOrDefault(x => x.Id == posassignment.MerchantId);
                 var posUnits = transactionModel.PosUnits.FirstOrDefault(x => x.Id == posassignment.POSId);
                 var posuser = transactionModel.PosUsers.FirstOrDefault(x => x.MerchantId == posassignment.MerchantId);
@@ -170,23 +180,27 @@ namespace RI.UtilityApp.Controllers
                     ).ToList()
                 };
                 ResponseVM response = await PinDownloadConfirmation(confirmationRequest);
-                testUtilityHeader.EndTime = DateTime.UtcNow;
-                testUtilityLoadTestDetail.Add(new TestUtilityLoadTestDetail()
+                lock (transactionModel)
                 {
-                    ConfirmationReponseTime = Convert.ToInt32(response.Response_time),
-                    DownloadedPinId = downlaod.Pin.FirstOrDefault().download_pin_Id,
-                    DownloadResponseTime = Convert.ToInt32(downlaod.Response_time.Replace("ms","")),
-                    IsConfirmed = response.response_code == "00",
-                    IsDownloadCompleted = downlaod.response_code == "00",
-                    MerchantId = merchant.Id,
-                    PinDownloadId = downlaod.download_Id ?? 0,
-                    PosAssignmentId = posassignment.Id,
-                    PosId = posassignment.POSId,
-                    ResponseCode = response.response_code,
-                    ProductId = product.Id,
-                    TxnNo = confirmationRequest.txn.FirstOrDefault().sale_txn_no?.ToString()
-                });
-                await _utilityService.WriteTransaction(testUtilityHeader, testUtilityLoadTestDetail);
+                    transactionModel.TestUtilityHeader.EndTime = DateTime.UtcNow;
+
+                    transactionModel.TestUtilityLoadTestDetail.Add(new TestUtilityLoadTestDetail()
+                    {
+                        ConfirmationReponseTime = Convert.ToInt32(response.Response_time),
+                        DownloadedPinId = downlaod.Pin.FirstOrDefault().download_pin_Id,
+                        DownloadResponseTime = Convert.ToInt32(downlaod.Response_time.Replace("ms", "")),
+                        IsConfirmed = response.response_code == "00",
+                        IsDownloadCompleted = downlaod.response_code == "00",
+                        MerchantId = merchant.Id,
+                        PinDownloadId = downlaod.download_Id ?? 0,
+                        PosAssignmentId = posassignment.Id,
+                        PosId = posassignment.POSId,
+                        ResponseCode = response.response_code,
+                        ProductId = product.Id,
+                        TxnNo = confirmationRequest.txn.FirstOrDefault().sale_txn_no?.ToString()
+                    });
+                }
+
             }
             catch (Exception ex)
             {
@@ -194,10 +208,7 @@ namespace RI.UtilityApp.Controllers
             }
         }
 
-        private void TransactionLoadTest()
-        {
 
-        }
 
         private async Task<Token> GetToken(LoginModel user)
         {
