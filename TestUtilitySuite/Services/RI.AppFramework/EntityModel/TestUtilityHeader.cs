@@ -16,8 +16,7 @@ namespace RI.AppFramework.EntityModel
         [Required]
         [StringLength(10, ErrorMessage = "Batch Required", MinimumLength = 10)]
         public string Batch { get; set; }
-        [Required]
-        [StringLength(450, ErrorMessage = "Partner Id Required")]
+        [Required] 
         public int PartnerId { get; set; } 
         [Display(Name = "Number Of Terminals")]
         public int NumberOfTerminals { get; set; }

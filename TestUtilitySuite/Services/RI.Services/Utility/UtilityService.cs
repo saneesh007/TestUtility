@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
+using System.Linq;
+using System.Threading.Tasks; 
 using RI.AppFramework;
 using RI.AppFramework.EntityModel;
+using Microsoft.EntityFrameworkCore;
 
 namespace RI.Services.Utility
 {
@@ -14,18 +16,54 @@ namespace RI.Services.Utility
         {
             _db = rechargeDbContext;
         }
-        public async Task<bool> WriteTransaction(TestUtilityHeader header, List<TestUtilityLoadTestDetail> details)
+
+        public async Task<TestUtilityHeader> RegisterTransaction(TestUtilityHeader header)
         {
             try
             {
-                _db.TestUtilityHeader.Add(header);
-                await _db.SaveChangesAsync();
-                details.ForEach(x => x.HdrId = header.Id);
+                var lastBatch = _db.TestUtilityHeader.AsNoTracking().Where(x=>x.PartnerId==header.PartnerId).OrderByDescending(x => x.Id).FirstOrDefault();
+
+                if (lastBatch == null)
+                {
+                    header.Batch = "89" + DateTime.UtcNow.ToString("yy") + header.PartnerId.ToString().PadLeft(3, '0') + "00001";
+
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(lastBatch.Batch))
+                    {
+                        string number = lastBatch.Batch.ToString();
+                        string lastFive = number.Substring(number.Length - 5);
+                        int newNumber = Convert.ToInt32(lastFive) + 1;
+                        header.Batch = "89" + DateTime.UtcNow.ToString("yy") + header.PartnerId.ToString().PadLeft(3, '0') + newNumber.ToString().PadLeft(5, '0');
+                    }
+                    else
+                    {
+                        header.Batch = "89" + DateTime.UtcNow.ToString("yy") + header.PartnerId.ToString().PadLeft(3, '0') + "00001";
+                    }
+                }
+                if (true)
+                {
+                    _db.TestUtilityHeader.Add(header);
+                    int count = await _db.SaveChangesAsync(); 
+                }
+                return header;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public async Task<bool> WriteTransaction(List<TestUtilityLoadTestDetail> details)
+        {
+            try
+            {
                 _db.TestUtilityLoadTestDetail.AddRange(details);
-               int count= await _db.SaveChangesAsync();
+                int count = await _db.SaveChangesAsync();
                 return count > 0;
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 throw;
             }

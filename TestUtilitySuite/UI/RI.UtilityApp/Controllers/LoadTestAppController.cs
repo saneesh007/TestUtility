@@ -12,18 +12,17 @@ using Newtonsoft.Json;
 using RI.AppFramework.EntityModel;
 using RI.AppFramework.Models;
 using RI.Services.Partner;
-using RI.Services.Utility;
 using RI.UtilityApp.Models;
 
 namespace RI.UtilityApp.Controllers
 {
-    public class TransactionLoadTestController : Controller
+    public class LoadTestAppController : Controller
     {
         IPartnerService _partnerService;
         IPosService _posService;
         IProductService _productService;
         IHttpContextAccessor _httpContextAccessor;
-        public TransactionLoadTestController(IPartnerService partnerService, IPosService posService,
+        public LoadTestAppController(IPartnerService partnerService, IPosService posService,
             IProductService productService, IHttpContextAccessor httpContextAccessor)
         {
             _partnerService = partnerService;
@@ -74,7 +73,25 @@ namespace RI.UtilityApp.Controllers
                 transactionModel.Request = model;
                 transactionModel.URL = GetBaseUrl();
                 //Task.Factory.StartNew(() => TransactionLoadTest(transactionModel));
-                TransactionLoadTest(transactionModel);
+                transactionModel.TestUtilityHeader = new TestUtilityHeader()
+                {
+                    Date = DateTime.UtcNow,
+                    NumberOfTerminals = transactionModel.Request.NumberOfTerminals,
+                    NumberOfTransactionPerTerminal = transactionModel.Request.NumberOfTransactionPerTerminal,
+                    PartnerId = transactionModel.Request.PartnerId,
+                    StartTime = DateTime.UtcNow,
+                    ProcessTypeId = 1,
+                };
+                transactionModel.TestUtilityHeader = await RegisterTransaction(transactionModel.TestUtilityHeader, transactionModel.URL);
+
+                if (transactionModel.TestUtilityHeader.Id!=0)
+                {
+                    TransactionLoadTest(transactionModel); 
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Batch transaction unable to create");
+                }
             }
             return View(model);
         }
@@ -89,15 +106,6 @@ namespace RI.UtilityApp.Controllers
         }
         private async Task TransactionLoadTest(TransactionModel transactionModel)
         {
-            transactionModel.TestUtilityHeader = new TestUtilityHeader()
-            {
-                Date = DateTime.UtcNow,
-                NumberOfTerminals = transactionModel.Request.NumberOfTerminals,
-                NumberOfTransactionPerTerminal = transactionModel.Request.NumberOfTransactionPerTerminal,
-                PartnerId = transactionModel.Request.PartnerId,
-                StartTime = DateTime.UtcNow,
-                ProcessTypeId = 1,
-            };
             transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail = new List<TestUtilityLoadTestDetail>();
             List<Thread> transactionThread = new List<Thread>();
             foreach (var item in transactionModel.PosAssignments)
@@ -176,7 +184,7 @@ namespace RI.UtilityApp.Controllers
                             business_date = businessDay.business_date,
                             download_pin_id = x.download_pin_Id,
                             product_id = x.product_id,
-                            sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyyyMMddHHmm") + posassignment.Id + iteration),
+                            sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyMMddHHmm") + posassignment.Id + iteration),
                             serial_no = x.serial_no,
                             shift_no = businessDay.ShiftNo,
                             user_id = posUnits.Id
@@ -190,6 +198,7 @@ namespace RI.UtilityApp.Controllers
 
                 transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail.Add(new TestUtilityLoadTestDetail()
                 {
+                    HdrId = transactionModel.TestUtilityHeader.Id,
                     ConfirmationReponseTime = Convert.ToInt32(response.Response_time),
                     DownloadedPinId = downlaod.Pin.FirstOrDefault().download_pin_Id,
                     DownloadResponseTime = Convert.ToInt32(downlaod.Response_time.Replace("ms", "")),
@@ -257,9 +266,9 @@ namespace RI.UtilityApp.Controllers
                 bool result = false;
                 using (HttpClient client = new HttpClient())
                 {
-                    var data = JsonConvert.SerializeObject(testResult);
+                    var data = JsonConvert.SerializeObject(testResult.TestUtilityLoadTestDetail);
                     StringContent request = new StringContent(data, Encoding.UTF8, "application/json");
-                    string endpoint = "http://localhost:63215/api/WriteTransactionLoad"; //url + "api/Utility/WriteTransactionLoad";
+                    string endpoint = url + "api/UtilityApp/WriteTransactionLoad"; //url + "api/Utility/WriteTransactionLoad";
                     //client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", "50185b70341b4f5aa5e1d3307a261798");
                     using (var Response = await client.PostAsync(endpoint, request))
                     {
@@ -273,6 +282,37 @@ namespace RI.UtilityApp.Controllers
                         else
                         {
                             return result;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        private async Task<TestUtilityHeader> RegisterTransaction(TestUtilityHeader testResult, string url)
+        {
+            try
+            { 
+                using (HttpClient client = new HttpClient())
+                {
+                    var data = JsonConvert.SerializeObject(testResult);
+                    StringContent request = new StringContent(data, Encoding.UTF8, "application/json");
+                    string endpoint = url + "api/UtilityApp/RegisterTransaction"; //url + "api/Utility/WriteTransactionLoad";
+                    //client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", "50185b70341b4f5aa5e1d3307a261798");
+                    using (var Response = await client.PostAsync(endpoint, request))
+                    {
+                        if (Response.StatusCode == System.Net.HttpStatusCode.OK)
+                        {
+                            string content = await Response.Content.ReadAsStringAsync();
+                            string header = JsonConvert.DeserializeObject(content).ToString();
+                            testResult = JsonConvert.DeserializeObject<TestUtilityHeader>(header);
+                            return testResult;
+                        }
+                        else
+                        {
+                            return testResult;
                         }
                     }
                 }

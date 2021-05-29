@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +26,7 @@ namespace RI.UtilityApp
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<RechargeDbContext>(
-          options => options.UseSqlServer("name=ConnectionStrings:DefaultConnection"));
+             options => options.UseSqlServer("name=ConnectionStrings:DefaultConnection"));
 
             services.AddTransient<IPartnerService, PartnerService>();
             services.AddTransient<IPosService, PosService>();

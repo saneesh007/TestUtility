@@ -8,6 +8,7 @@ namespace RI.Services.Utility
 {
     public interface IUtilityService
     {
-        Task<bool> WriteTransaction(TestUtilityHeader header, List<TestUtilityLoadTestDetail> details);
+        Task<TestUtilityHeader> RegisterTransaction(TestUtilityHeader header);
+        Task<bool> WriteTransaction(List<TestUtilityLoadTestDetail> details);
     }
 }
