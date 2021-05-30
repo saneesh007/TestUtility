@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using RI.AppFramework.EntityModel;
 using RI.AppFramework.Models;
 using RI.Services.Partner;
+using RI.Services.Utility;
 using RI.UtilityApp.Models;
 
 namespace RI.UtilityApp.Controllers
@@ -22,18 +23,20 @@ namespace RI.UtilityApp.Controllers
         IPosService _posService;
         IProductService _productService;
         IHttpContextAccessor _httpContextAccessor;
+        IUtilityService _utilityService;
         public LoadTestAppController(IPartnerService partnerService, IPosService posService,
-            IProductService productService, IHttpContextAccessor httpContextAccessor)
+            IProductService productService, IHttpContextAccessor httpContextAccessor, IUtilityService utilityService)
         {
             _partnerService = partnerService;
             _posService = posService;
             _productService = productService;
             _httpContextAccessor = httpContextAccessor;
+            _utilityService = utilityService;
         }
         // GET: /<controller>/
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? pageIndex, int? pageSize)
         {
             TransactionLoadTestModel model = new TransactionLoadTestModel();
             model.Partners = (await _partnerService.GetAllActivePartners())
@@ -42,6 +45,7 @@ namespace RI.UtilityApp.Controllers
                     Text = x.Name,
                     Value = x.Id.ToString()
                 }).ToList();
+            model.TestUtilityHeader = await _utilityService.GetTransaction(pageIndex ?? 1, pageSize ?? 10);
             return View(model);
         }
         [HttpPost]
@@ -84,15 +88,16 @@ namespace RI.UtilityApp.Controllers
                 };
                 transactionModel.TestUtilityHeader = await RegisterTransaction(transactionModel.TestUtilityHeader, transactionModel.URL);
 
-                if (transactionModel.TestUtilityHeader.Id!=0)
+                if (transactionModel.TestUtilityHeader.Id != 0)
                 {
-                    TransactionLoadTest(transactionModel); 
+                    TransactionLoadTest(transactionModel);
                 }
                 else
                 {
                     ModelState.AddModelError(string.Empty, "Batch transaction unable to create");
                 }
             }
+            model.TestUtilityHeader = await _utilityService.GetTransaction(1, 10);
             return View(model);
         }
         public string GetBaseUrl()
@@ -294,7 +299,7 @@ namespace RI.UtilityApp.Controllers
         private async Task<TestUtilityHeader> RegisterTransaction(TestUtilityHeader testResult, string url)
         {
             try
-            { 
+            {
                 using (HttpClient client = new HttpClient())
                 {
                     var data = JsonConvert.SerializeObject(testResult);

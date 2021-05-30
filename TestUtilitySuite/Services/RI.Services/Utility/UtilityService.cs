@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
-using System.Threading.Tasks; 
+using System.Threading.Tasks;
 using RI.AppFramework;
 using RI.AppFramework.EntityModel;
 using Microsoft.EntityFrameworkCore;
+using RI.AppFramework.Models;
 
 namespace RI.Services.Utility
 {
@@ -15,6 +16,18 @@ namespace RI.Services.Utility
         public UtilityService(RechargeDbContext rechargeDbContext)
         {
             _db = rechargeDbContext;
+        }
+
+        public async Task<PaginatedList<TestUtilityHeader>> GetTransaction(int pageIndex, int pageSize)
+        {
+            try
+            {
+                return await PaginatedList<TestUtilityHeader>.CreateAsync(_db.TestUtilityHeader.AsNoTracking(), pageIndex, pageSize);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         public async Task<TestUtilityHeader> RegisterTransaction(TestUtilityHeader header)

@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using RI.AppFramework.EntityModel;
+using RI.AppFramework.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -16,5 +18,6 @@ namespace RI.UtilityApp.Models
         public int NumberOfTerminals { get; set; }
         [Display(Name = "Number Of Transaction Per Terminal")]
         public int NumberOfTransactionPerTerminal { get; set; }
+        public PaginatedList<TestUtilityHeader> TestUtilityHeader { get; set; }
     }
 }
