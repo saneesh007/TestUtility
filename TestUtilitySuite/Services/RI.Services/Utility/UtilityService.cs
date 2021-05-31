@@ -34,7 +34,7 @@ namespace RI.Services.Utility
         {
             try
             {
-                var lastBatch = _db.TestUtilityHeader.AsNoTracking().Where(x=>x.PartnerId==header.PartnerId).OrderByDescending(x => x.Id).FirstOrDefault();
+                var lastBatch = _db.TestUtilityHeader.AsNoTracking().Where(x => x.PartnerId == header.PartnerId).OrderByDescending(x => x.Id).FirstOrDefault();
 
                 if (lastBatch == null)
                 {
@@ -55,16 +55,13 @@ namespace RI.Services.Utility
                         header.Batch = "89" + DateTime.UtcNow.ToString("yy") + header.PartnerId.ToString().PadLeft(3, '0') + "00001";
                     }
                 }
-                if (true)
-                {
-                    _db.TestUtilityHeader.Add(header);
-                    int count = await _db.SaveChangesAsync(); 
-                }
+                _db.TestUtilityHeader.Add(header);
+                int count = await _db.SaveChangesAsync();
                 return header;
             }
             catch (Exception ex)
             {
-                throw;
+                throw ex;
             }
         }
 
@@ -78,7 +75,7 @@ namespace RI.Services.Utility
             }
             catch (Exception ex)
             {
-                throw;
+                throw ex;
             }
         }
     }
