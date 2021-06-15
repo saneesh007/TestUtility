@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using RI.AppFramework;
 using RI.Services.Partner;
 using RI.Services.Utility;
+using RI.UtilityApp.Services;
 
 namespace RI.UtilityApp
 {
@@ -28,6 +29,7 @@ namespace RI.UtilityApp
             services.AddDbContext<RechargeDbContext>(
              options => options.UseSqlServer("name=ConnectionStrings:DefaultConnection"));
 
+            services.AddScoped<IViewRenderService, ViewRenderService>();
             services.AddTransient<IPartnerService, PartnerService>();
             services.AddTransient<IPosService, PosService>();
             services.AddTransient<IProductService, ProductService>();

@@ -14,6 +14,7 @@ using RI.AppFramework.Models;
 using RI.Services.Partner;
 using RI.Services.Utility;
 using RI.UtilityApp.Models;
+using RI.UtilityApp.Services;
 
 namespace RI.UtilityApp.Controllers
 {
@@ -24,19 +25,22 @@ namespace RI.UtilityApp.Controllers
         IProductService _productService;
         IHttpContextAccessor _httpContextAccessor;
         IUtilityService _utilityService;
+        private readonly IViewRenderService _viewRenderService;
         public LoadTestAppController(IPartnerService partnerService, IPosService posService,
-            IProductService productService, IHttpContextAccessor httpContextAccessor, IUtilityService utilityService)
+            IProductService productService, IHttpContextAccessor httpContextAccessor, IUtilityService utilityService
+            , IViewRenderService viewRenderService)
         {
             _partnerService = partnerService;
             _posService = posService;
             _productService = productService;
             _httpContextAccessor = httpContextAccessor;
             _utilityService = utilityService;
+            _viewRenderService = viewRenderService;
         }
         // GET: /<controller>/
 
         [HttpGet]
-        public async Task<IActionResult> Index(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> Index()
         {
             TransactionLoadTestModel model = new TransactionLoadTestModel();
             model.Partners = (await _partnerService.GetAllActivePartners())
@@ -45,12 +49,13 @@ namespace RI.UtilityApp.Controllers
                     Text = x.Name,
                     Value = x.Id.ToString()
                 }).ToList();
-            model.TestUtilityHeader = await _utilityService.GetTransaction(pageIndex ?? 1, pageSize ?? 10);
             return View(model);
         }
+
         [HttpPost]
-        public async Task<IActionResult> Index(TransactionLoadTestModel model)
+        public async Task<JsonResult> ProcesTransaction(TransactionLoadTestModel model)
         {
+            TransactionModel transactionModel = new TransactionModel();
             model.Partners = (await _partnerService.GetAllActivePartners())
                 .Select(x => new SelectListItem()
                 {
@@ -67,7 +72,6 @@ namespace RI.UtilityApp.Controllers
                 var posUnits = await _posService.GetAllPosUnit(model.PartnerId, posunitId);
                 var products = await _productService.GetAllProducts(model.PartnerId);
                 var productassignments = await _productService.GetAgentProductAssignment(model.PartnerId, merchantId);
-                TransactionModel transactionModel = new TransactionModel();
                 transactionModel.PosAssignments = posassignments;
                 transactionModel.Merchants = merchants;
                 transactionModel.PosUnits = posUnits;
@@ -76,7 +80,6 @@ namespace RI.UtilityApp.Controllers
                 transactionModel.Products = products;
                 transactionModel.Request = model;
                 transactionModel.URL = GetBaseUrl();
-                //Task.Factory.StartNew(() => TransactionLoadTest(transactionModel));
                 transactionModel.TestUtilityHeader = new TestUtilityHeader()
                 {
                     Date = DateTime.UtcNow,
@@ -87,20 +90,48 @@ namespace RI.UtilityApp.Controllers
                     ProcessTypeId = 1,
                 };
                 transactionModel.TestUtilityHeader = await RegisterTransaction(transactionModel.TestUtilityHeader, transactionModel.URL);
-
                 if (transactionModel.TestUtilityHeader.Id != 0)
                 {
                     TransactionLoadTest(transactionModel);
                 }
                 else
                 {
-                    ModelState.AddModelError(string.Empty, "Batch transaction unable to create");
+
+                    return Json(new { status = 0, message = "Batch transaction unable to create", data = string.Empty });
                 }
             }
-            model.TestUtilityHeader = await _utilityService.GetTransaction(1, 10);
-            return View(model);
+            return Json(new { status = 1, message = "Transaction processing with batch " + transactionModel.TestUtilityHeader.Batch, data = string.Empty });
         }
-        public string GetBaseUrl()
+        [HttpGet]
+        public async Task<JsonResult> GetProcessDetail(int id)
+        {
+            var viewModel = await _utilityService.GetTransaction(id);
+            var result = await _viewRenderService.RenderToStringAsync("LoadTestApp/_Details", viewModel);
+            return Json(new { status = 1, message = "Transaction loaded", data = result });
+        }
+        [HttpGet]
+        public async Task<JsonResult> LoadTransactionList(int? pageIndex, int? pageSize, string searchText = "")
+        {
+            var viewModel = await _utilityService.GetTransaction(pageIndex ?? 1, pageSize ?? 10, searchText);
+            var result = await _viewRenderService.RenderToStringAsync("LoadTestApp/_TransactionList", viewModel);
+            return Json(new { status = 1, message = "Transaction loaded", data = result });
+        }
+
+        [HttpGet]
+        public async Task<JsonResult> AddModel()
+        {
+            TransactionLoadTestModel model = new TransactionLoadTestModel();
+            model.Partners = (await _partnerService.GetAllActivePartners())
+                .Select(x => new SelectListItem()
+                {
+                    Text = x.Name,
+                    Value = x.Id.ToString()
+                }).ToList();
+            var result = await _viewRenderService.RenderToStringAsync("LoadTestApp/_AddTransaction", model);
+            return Json(new { status = 1, message = "Transaction add loaded", data = result });
+        }
+        #region process
+        private string GetBaseUrl()
         {
             var baseUrl = String.Empty;
             var request = _httpContextAccessor.HttpContext.Request;
@@ -130,6 +161,14 @@ namespace RI.UtilityApp.Controllers
                 var merchant = transactionModel.Merchants.FirstOrDefault(x => x.Id == posassignment.MerchantId);
                 var posUnits = transactionModel.PosUnits.FirstOrDefault(x => x.Id == posassignment.POSId);
                 var posuser = transactionModel.PosUsers.FirstOrDefault(x => x.MerchantId == posassignment.MerchantId);
+                var detail = new TestUtilityLoadTestDetail()
+                {
+                    HdrId = transactionModel.TestUtilityHeader.Id,
+                    MerchantId = merchant.Id,
+                    PosUserId = posuser.Id,
+                    PosAssignmentId = posassignment.Id,
+                    PosId = posassignment.POSId,
+                };
                 LoginModel user = new LoginModel()
                 {
                     merchant_id = merchant.Id,
@@ -142,96 +181,94 @@ namespace RI.UtilityApp.Controllers
                 };
 
                 Token token = await GetToken(user);
-                BusinessdayRequestVM businessdayRequest = new BusinessdayRequestVM()
+                detail.ResponseCode = token.response_code;
+                if (detail.ResponseCode == "00")
                 {
-                    merchant_id = merchant.Id,
-                    token = token.token,
-                    user_id = posuser.Id,
-                    pos_id = posassignment.POSId,
-                };
-                BusinessDayResponseVM businessDay = await GetActiveBusinessDay(businessdayRequest);
-                var q = (from c in transactionModel.ProductAgentAssignments
-                         join p in transactionModel.Products on c.ProductId equals p.Id
-                         where c.AgentId == merchant.Id
-                         select p
-                               ).ToList();
-                var rand = new Random();
-                int count = rand.Next(1, q.Count() - 1);
-                var product = q.Skip(count).Take(1).FirstOrDefault();
-                PindownloadRequestVM downloadRequest = new PindownloadRequestVM()
-                {
-                    business_date = businessDay.business_date,
-                    merchant_id = merchant.Id,
-                    mode = 1,
-                    pos_assignment_id = posassignment.Id,
-                    pos_id = posassignment.POSId,
-                    pos_user_id = posuser.Id,
-                    product_group_id = product.ProductGroupId,
-                    product_id = product.Id,
-                    qty = 1,
-                    request_id = 0,
-                    service_provider_id = product.ServiceProviderId,
-                    shift_no = businessDay.ShiftNo,
-                    token = token.token
-                };
-                PinDownloadReponseVM downlaod = await PinDownload(downloadRequest);
-                PinDownloadConfirmRequestVM confirmationRequest = new PinDownloadConfirmRequestVM()
-                {
-                    download_id = downlaod.download_Id ?? 0,
-                    merchant_id = merchant.Id,
-                    pos_assignment_id = posassignment.Id,
-                    pos_id = posassignment.POSId,
-                    pos_user_id = posuser.Id,
-                    token = token.token,
-                    txn = downlaod.Pin.Select(x =>
-                        new PinDetails()
+                    BusinessdayRequestVM businessdayRequest = new BusinessdayRequestVM()
+                    {
+                        merchant_id = merchant.Id,
+                        token = token.token,
+                        user_id = posuser.Id,
+                        pos_id = posassignment.POSId,
+                    };
+                    BusinessDayResponseVM businessDay = await GetActiveBusinessDay(businessdayRequest);
+                    detail.ResponseCode = businessDay.response_code;
+                    if (detail.ResponseCode == "00")
+                    {
+                        var q = (from c in transactionModel.ProductAgentAssignments
+                                 join p in transactionModel.Products on c.ProductId equals p.Id
+                                 where c.AgentId == merchant.Id
+                                 select p
+                                               ).ToList();
+                        var rand = new Random();
+                        int count = rand.Next(1, q.Count() - 1);
+                        var product = q.Skip(count).Take(1).FirstOrDefault();
+                        detail.ProductId = product.Id;
+                        PindownloadRequestVM downloadRequest = new PindownloadRequestVM()
                         {
                             business_date = businessDay.business_date,
-                            download_pin_id = x.download_pin_Id,
-                            product_id = x.product_id,
-                            sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyMMddHHmm") + posassignment.Id + iteration),
-                            serial_no = x.serial_no,
+                            merchant_id = merchant.Id,
+                            mode = 1,
+                            pos_assignment_id = posassignment.Id,
+                            pos_id = posassignment.POSId,
+                            pos_user_id = posuser.Id,
+                            product_group_id = product.ProductGroupId,
+                            product_id = product.Id,
+                            qty = 1,
+                            request_id = 0,
+                            service_provider_id = product.ServiceProviderId,
                             shift_no = businessDay.ShiftNo,
-                            user_id = posUnits.Id
+                            token = token.token
+                        };
+                        PinDownloadReponseVM downlaod = await PinDownload(downloadRequest);
+                        detail.ResponseCode = downlaod.response_code;
+                        if (detail.ResponseCode == "00")
+                        {
+                            detail.DownloadedPinId = downlaod.Pin.FirstOrDefault().download_pin_Id;
+                            detail.DownloadResponseTime = Convert.ToInt32(downlaod.Response_time.Replace("ms", ""));
+                            detail.IsDownloadCompleted = downlaod.response_code == "00";
+                            detail.PinDownloadId = downlaod.download_Id ?? 0;
+                            PinDownloadConfirmRequestVM confirmationRequest = new PinDownloadConfirmRequestVM()
+                            {
+                                download_id = downlaod.download_Id ?? 0,
+                                merchant_id = merchant.Id,
+                                pos_assignment_id = posassignment.Id,
+                                pos_id = posassignment.POSId,
+                                pos_user_id = posuser.Id,
+                                token = token.token,
+                                txn = downlaod.Pin.Select(x =>
+                                    new PinDetails()
+                                    {
+                                        business_date = businessDay.business_date,
+                                        download_pin_id = x.download_pin_Id,
+                                        product_id = x.product_id,
+                                        sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyMMddHHmm") + posassignment.Id.ToString() + iteration.ToString()),
+                                        serial_no = x.serial_no,
+                                        shift_no = businessDay.ShiftNo,
+                                        user_id = posUnits.Id
+                                    }
+                                ).ToList()
+                            };
+                            detail.TxnNo = confirmationRequest.txn.FirstOrDefault().sale_txn_no?.ToString();
+                            ResponseVM response = await PinDownloadConfirmation(confirmationRequest);
+                            detail.IsConfirmed = response.response_code == "00";
+                            detail.ResponseCode = response.response_code;
+                            detail.ConfirmationReponseTime = Convert.ToInt32(response.Response_time);
                         }
-                    ).ToList()
-                };
-                ResponseVM response = await PinDownloadConfirmation(confirmationRequest);
-                //lock (transactionModel)
-                //{
+                    }
+                }
                 transactionModel.TestUtilityHeader.EndTime = DateTime.UtcNow;
-
-                transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail.Add(new TestUtilityLoadTestDetail()
-                {
-                    HdrId = transactionModel.TestUtilityHeader.Id,
-                    ConfirmationReponseTime = Convert.ToInt32(response.Response_time),
-                    DownloadedPinId = downlaod.Pin.FirstOrDefault().download_pin_Id,
-                    DownloadResponseTime = Convert.ToInt32(downlaod.Response_time.Replace("ms", "")),
-                    IsConfirmed = response.response_code == "00",
-                    IsDownloadCompleted = downlaod.response_code == "00",
-                    MerchantId = merchant.Id,
-                    PinDownloadId = downlaod.download_Id ?? 0,
-                    PosAssignmentId = posassignment.Id,
-                    PosId = posassignment.POSId,
-                    ResponseCode = response.response_code,
-                    ProductId = product.Id,
-                    TxnNo = confirmationRequest.txn.FirstOrDefault().sale_txn_no?.ToString()
-                });
-                //}
+                transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail.Add(detail);
                 if (transactionModel.TestUtilityHeader.TestUtilityLoadTestDetail.Count == (transactionModel.Request.NumberOfTerminals * transactionModel.Request.NumberOfTransactionPerTerminal))
                 {
                     await WriteTransactionLoad(transactionModel.TestUtilityHeader, transactionModel.URL);
                 }
-
             }
             catch (Exception ex)
             {
                 throw ex;
             }
         }
-
-
-
         private async Task<Token> GetToken(LoginModel user)
         {
             try
@@ -402,5 +439,6 @@ namespace RI.UtilityApp.Controllers
                 }
             }
         }
+        #endregion
     }
 }

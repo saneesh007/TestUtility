@@ -1,0 +1,36 @@
+﻿@model IEnumerable<RI.AppFramework.Models.TestUtilityHeaderVM>;
+
+<div class="table-responsive">
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Batch</th>
+                <th>Partner</th>
+                <th>Suceess Count</th>
+                <th>Failer Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Count() > 0)
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td><a href="javascript:void(0);" onclick="loadDetailView(@item.Id)">@item.Batch</a></td>
+                        <td>@item.Partner</td>
+                        <td>@item.SuccessCount</td>
+                        <td>@item.FailureCount</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5">no data</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

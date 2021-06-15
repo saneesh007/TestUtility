@@ -15,6 +15,7 @@ namespace RI.AppFramework.EntityModel
         [Required]
         public int HdrId { get; set; }
         public int MerchantId { get; set; }
+        public int PosUserId { get; set; }
         public int PosAssignmentId { get; set; }
         public int PosId { get; set; }
         public string TxnNo { get; set; }

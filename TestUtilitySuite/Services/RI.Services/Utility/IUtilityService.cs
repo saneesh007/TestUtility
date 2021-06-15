@@ -11,6 +11,7 @@ namespace RI.Services.Utility
     {
         Task<TestUtilityHeader> RegisterTransaction(TestUtilityHeader header);
         Task<bool> WriteTransaction(List<TestUtilityLoadTestDetail> details);
-        Task<PaginatedList<TestUtilityHeader>> GetTransaction(int pageIndex, int pageSize);
+        Task<PaginatedList<TestUtilityHeaderVM>> GetTransaction(int pageIndex, int pageSize, string searchText = "");
+        Task<TestUtilityHeaderVM> GetTransaction(int id);
     }
 }

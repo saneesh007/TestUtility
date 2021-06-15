@@ -1,0 +1,72 @@
+﻿@model RI.AppFramework.Models.TestUtilityHeaderVM;
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="col">
+            <label asp-for="PartnerId" class="control-label"></label>
+            <input asp-for="Partner" class="form-control" disabled="disabled" />
+        </div>
+        <div class="col">
+            <label asp-for="NumberOfTerminals" class="control-label"></label>
+            <input asp-for="NumberOfTerminals" class="form-control" disabled="disabled" />
+        </div>
+        <div class="col">
+            <label asp-for="NumberOfTransactionPerTerminal" class="control-label"></label>
+            <input asp-for="NumberOfTransactionPerTerminal" class="form-control" disabled="disabled" />
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="col">
+            <label asp-for="Batch" class="control-label"></label>
+            <input asp-for="Batch" class="form-control" disabled="disabled" />
+        </div>
+        <div class="col">
+            <label asp-for="SuccessCount" class="control-label"></label>
+            <input asp-for="SuccessCount" class="form-control" disabled="disabled" />
+        </div>
+        <div class="col">
+            <label asp-for="FailureCount" class="control-label"></label>
+            <input asp-for="FailureCount" class="form-control" disabled="disabled" />
+        </div>
+    </div>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>TxnNo</th>
+                <th>Merchant</th>
+                <th>Pos Unit</th>
+                <th>Pos User</th>
+                <th>Product</th>
+                <th>FaceValue</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.LoadTestDetail.Count() > 0)
+            {
+                foreach (var item in Model.LoadTestDetail)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td><a href="javascript:void(0);" onclick="loadDetailView(@item.Id)">@item.TxnNo</a></td>
+                        <td>@item.Merchant</td>
+                        <td>@item.PosUnit</td>
+                        <td>@item.PosCashier</td>
+                        <td>@item.Product</td>
+                        <td>@item.FaceValue</td>
+                        <td>@(item.IsConfirmed ? "Completed" : item.IsDownloadCompleted ? ("Downloaded - Response" + item.ResponseCode) : ("Not Download - Response" + item.ResponseCode) )</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5">no data</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

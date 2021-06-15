@@ -20,15 +20,15 @@ namespace RI.UtilityApp.Controllers
         }
         [HttpPost]
         [Route("api/UtilityApp/WriteTransactionLoad")]
-        public async Task WriteTransactionLoad([FromBody]List<TestUtilityLoadTestDetail> details)
+        public async Task<bool> WriteTransactionLoad([FromBody]List<TestUtilityLoadTestDetail> details)
         {
             try
             {
                 var result = await _utilityService.WriteTransaction(details);
+                return result;
             }
             catch (Exception ex)
             {
-
                 throw ex;
             }
             //  return false;
@@ -44,23 +44,6 @@ namespace RI.UtilityApp.Controllers
             }
             catch (Exception ex)
             {
-
-                throw ex;
-            }
-            //  return false;
-        }
-        [HttpGet]
-        [Route("api/UtilityApp/GetTransaction/{pageIndex}/{pageSize}")]
-        public async Task<PaginatedList<TestUtilityHeader>> GetTransaction(int pageIndex, int pageSize)
-        {
-            try
-            {
-                var result = await _utilityService.GetTransaction(pageIndex, pageSize);
-                return result;
-            }
-            catch (Exception ex)
-            {
-
                 throw ex;
             }
             //  return false;

@@ -1,73 +1,149 @@
-﻿@model RI.UtilityApp.Models.TransactionLoadTestModel
-
+﻿
 @{
     ViewData["Title"] = "Index";
 }
 <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
-    <div class="row">
-        <div class="col-md-4">
-            <form asp-action="Index">
-                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                <div class="form-group">
-                    <label asp-for="PartnerId" class="control-label"></label>
-                    <select asp-for="PartnerId" class="form-control selectpicker" data-live-search="true" asp-items="@(Model.Partners)">
-                        <option>Please select one</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label asp-for="NumberOfTerminals" class="control-label"></label>
-                    <input asp-for="NumberOfTerminals" class="form-control" />
-                    <span asp-validation-for="NumberOfTerminals" class="text-danger"></span>
-                </div>
-                <div class="form-group">
-                    <label asp-for="NumberOfTransactionPerTerminal" class="control-label"></label>
-                    <input asp-for="NumberOfTransactionPerTerminal" class="form-control" />
-                    <span asp-validation-for="NumberOfTransactionPerTerminal" class="text-danger"></span>
-                </div>
-                <div class="form-group">
-                    <input type="submit" value="Transaction" class="btn btn-default" />
-                </div>
-            </form>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+        <h1 class="h2">Dashboard</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btn_TransactionAddModal" data-toggle="modal" data-target="#TransactionAddModal">
+                Process load Test
+            </button>
         </div>
     </div>
-    <h2>Section title</h2>
-    <div class="table-responsive">
-        <table class="table table-striped table-sm">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Batch</th>
-                    <th>Partner</th>
-                    <th>Suceess Count</th>
-                    <th>Failer Count</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.TestUtilityHeader.Count() > 0)
-                {
-                    foreach (var item in Model.TestUtilityHeader)
-                    {
-                        <tr>
-                            <td>@item.Id</td>
-                            <td>@item.Batch</td>
-                            <td>@item.PartnerId</td>
-                            <td>@item.SuccessCount</td>
-                            <td>@item.FailureCount</td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                }
-            </tbody>
-        </table>
+    @*<div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>*@
+    <!-- Modal -->
+    <div class="modal fade" id="TransactionDetailModal" tabindex="-1" role="dialog" aria-labelledby="TransactionDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog  modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="TransactionDetailModalLabel">Transaction Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="TransactionDetails">
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="TransactionAddModal" tabindex="-1" role="dialog" aria-labelledby="TransactionAddModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="TransactionAddModalLabel">Add New Transaction</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="fm_TransactionAddModal"></form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <input type="submit" class="btn btn-primary" id="btnTransact" value="Process" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="Transactionlist">
+
     </div>
 
     @section Scripts {
         @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-
         $('select').selectpicker();
-
     }
 
+    <script>
+        $(document).ready(function () {
+            loadTransactionList(1,10);
+        });
+        function loadTransactionList(index,size) {
+            $.ajax({
+                url: '@Url.Action("LoadTransactionList", "LoadTestApp")',
+                type: 'GET',
+                data: { pageIndex: index, pageSize: size },
+                    success: function (data) {
+                        if (data.status==1) {
+                            $('#Transactionlist').html(data.data);
+                        }
+                    },
+                    error: function (data) {
+                        alert("data processing error");
+                        console.log(data)
+                    }
+                });
+        }
+        $("#btnTransact").click(function () {
+            var postdata = {
+                NumberOfTransactionPerTerminal: $("#NumberOfTransactionPerTerminal").val(),
+                NumberOfTerminals: $("#NumberOfTerminals").val(),
+                PartnerId: $("#PartnerId").val(),
+            };
+            $.ajax({
+                cache: false,
+                type: 'Post',
+                data: postdata,
+                async: false,
+                url: '@Url.Action("ProcesTransaction", "LoadTestApp")',
+                success: function (data) {
+                    alert(data.message);
+                    if (data.status==1) {
+                        $('#TransactionAddModal').modal('hide');
+                        $('.modal-backdrop').hide();
+                        loadTransactionList(1, 10);
+                    }
+                },
+                error: function (data) {
+                    alert("data processing error");
+                    console.log(data)
+                }
+            });
+        });
+        $("#btn_TransactionAddModal").click(function () {
+            $.ajax({
+                cache: false,
+                type: 'GET',
+                async: false,
+                url: '@Url.Action("AddModel", "LoadTestApp")',
+                success: function (data) {
+                    if (data.status == 1) {
+                        $('#fm_TransactionAddModal').html(data.data);
+                        $('select').selectpicker();
+                    }
+                },
+                error: function (data) {
+                    alert("data processing error");
+                    console.log(data)
+                }
+            });
+        });
+        function loadDetailView(id) {
+            if (id != null) {
+                $.ajax({
+                    url: '@Url.Action("GetProcessDetail", "LoadTestApp")',
+                    type: 'GET',
+                    data: { id: id },
+                    success: function (data) {
+                        if (data.status==1) {
+                            $('#TransactionDetails').html(data.data);
+                            $('#TransactionDetailModal').modal('show');
+                        }
+                    },
+                    error: function (data) {
+                        alert("data processing error");
+                        console.log(data)
+                    }
+                });
+            }
+        }
+    </script>
 </main>

@@ -18,6 +18,5 @@ namespace RI.UtilityApp.Models
         public int NumberOfTerminals { get; set; }
         [Display(Name = "Number Of Transaction Per Terminal")]
         public int NumberOfTransactionPerTerminal { get; set; }
-        public PaginatedList<TestUtilityHeader> TestUtilityHeader { get; set; }
     }
 }
