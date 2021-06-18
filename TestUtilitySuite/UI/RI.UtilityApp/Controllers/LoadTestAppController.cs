@@ -242,7 +242,7 @@ namespace RI.UtilityApp.Controllers
                                         business_date = businessDay.business_date,
                                         download_pin_id = x.download_pin_Id,
                                         product_id = x.product_id,
-                                        sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyMMddHHmm") + posassignment.Id.ToString() + iteration.ToString()),
+                                        sale_txn_no = Convert.ToInt64("50" + DateTime.UtcNow.ToString("yyMMddHHmmssff") + posassignment.Id.ToString()),
                                         serial_no = x.serial_no,
                                         shift_no = businessDay.ShiftNo,
                                         user_id = posUnits.Id

@@ -47,10 +47,11 @@
         <tbody>
             @if (Model.LoadTestDetail.Count() > 0)
             {
+                int i = 0;
                 foreach (var item in Model.LoadTestDetail)
                 {
                     <tr>
-                        <td>@item.Id</td>
+                        <td>@(i++)</td>
                         <td><a href="javascript:void(0);" onclick="loadDetailView(@item.Id)">@item.TxnNo</a></td>
                         <td>@item.Merchant</td>
                         <td>@item.PosUnit</td>
